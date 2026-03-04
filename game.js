@@ -2,6 +2,7 @@
 const GRID_SIZE = 20;
 const CELL_SIZE = 20;
 const GAME_SPEED = 100;
+const CANVAS_SIZE = 400;
 
 // 游戏状态
 let snake = [];
@@ -13,6 +14,7 @@ let highScore = localStorage.getItem('snakeHighScore') || 0;
 let gameLoop = null;
 let isPaused = false;
 let isGameOver = false;
+let dpr = 1;
 
 // DOM 元素
 let canvas, ctx;
@@ -28,6 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
     startBtn = document.getElementById('startBtn');
     pauseBtn = document.getElementById('pauseBtn');
 
+    // 设置高清 Canvas
+    setupHiDPICanvas();
+
     highScoreElement.textContent = highScore;
 
     // 绑定事件
@@ -41,23 +46,86 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.addEventListener('keydown', handleKeyPress);
 
+    // 监听缩放变化
+    window.addEventListener('resize', handleResize);
+
     // 绘制初始画面
     drawInitialScreen();
 });
 
+// 设置高清 Canvas
+function setupHiDPICanvas() {
+    dpr = window.devicePixelRatio || 1;
+
+    // 设置 canvas 的实际像素大小
+    canvas.width = CANVAS_SIZE * dpr;
+    canvas.height = CANVAS_SIZE * dpr;
+
+    // 设置 canvas 的 CSS 显示大小
+    canvas.style.width = CANVAS_SIZE + 'px';
+    canvas.style.height = CANVAS_SIZE + 'px';
+
+    // 缩放绑定上下文
+    ctx.scale(dpr, dpr);
+}
+
+// 处理窗口缩放
+function handleResize() {
+    const newDpr = window.devicePixelRatio || 1;
+    if (newDpr !== dpr) {
+        setupHiDPICanvas();
+        // 重绘当前画面
+        if (gameLoop && !isPaused && !isGameOver) {
+            draw();
+        } else if (isPaused) {
+            draw();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 30px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('已暂停', CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+        } else if (isGameOver) {
+            draw();
+            gameOverScreen();
+        } else {
+            drawInitialScreen();
+        }
+    }
+}
+
+// 游戏结束画面
+function gameOverScreen() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = 'bold 36px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('游戏结束!', CANVAS_SIZE / 2, CANVAS_SIZE / 2 - 20);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Segoe UI';
+    ctx.fillText(`得分: ${score}`, CANVAS_SIZE / 2, CANVAS_SIZE / 2 + 20);
+
+    ctx.fillStyle = '#4ecca3';
+    ctx.font = '16px Segoe UI';
+    ctx.fillText('按"开始游戏"重新开始', CANVAS_SIZE / 2, CANVAS_SIZE / 2 + 60);
+}
+
 // 绘制初始画面
 function drawInitialScreen() {
     ctx.fillStyle = '#0f0f23';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     ctx.fillStyle = '#4ecca3';
     ctx.font = 'bold 24px Segoe UI';
     ctx.textAlign = 'center';
-    ctx.fillText('按"开始游戏"开始', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('按"开始游戏"开始', CANVAS_SIZE / 2, CANVAS_SIZE / 2);
 
     ctx.font = '16px Segoe UI';
     ctx.fillStyle = '#888';
-    ctx.fillText('使用方向键控制蛇的移动', canvas.width / 2, canvas.height / 2 + 30);
+    ctx.fillText('使用方向键控制蛇的移动', CANVAS_SIZE / 2, CANVAS_SIZE / 2 + 30);
 }
 
 // 开始游戏
@@ -161,7 +229,7 @@ function checkCollision(head) {
 function draw() {
     // 清空画布
     ctx.fillStyle = '#0f0f23';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     // 绘制网格
     ctx.strokeStyle = 'rgba(78, 204, 163, 0.1)';
@@ -169,11 +237,11 @@ function draw() {
     for (let i = 0; i <= GRID_SIZE; i++) {
         ctx.beginPath();
         ctx.moveTo(i * CELL_SIZE, 0);
-        ctx.lineTo(i * CELL_SIZE, canvas.height);
+        ctx.lineTo(i * CELL_SIZE, CANVAS_SIZE);
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(0, i * CELL_SIZE);
-        ctx.lineTo(canvas.width, i * CELL_SIZE);
+        ctx.lineTo(CANVAS_SIZE, i * CELL_SIZE);
         ctx.stroke();
     }
 
@@ -290,21 +358,7 @@ function gameOver() {
     pauseBtn.disabled = true;
 
     // 绘制游戏结束画面
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = '#ff6b6b';
-    ctx.font = 'bold 36px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.fillText('游戏结束!', canvas.width / 2, canvas.height / 2 - 20);
-
-    ctx.fillStyle = '#fff';
-    ctx.font = '20px Segoe UI';
-    ctx.fillText(`得分: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
-
-    ctx.fillStyle = '#4ecca3';
-    ctx.font = '16px Segoe UI';
-    ctx.fillText('按"开始游戏"重新开始', canvas.width / 2, canvas.height / 2 + 60);
+    gameOverScreen();
 }
 
 // 切换暂停
@@ -316,12 +370,12 @@ function togglePause() {
 
     if (isPaused) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 30px Segoe UI';
         ctx.textAlign = 'center';
-        ctx.fillText('已暂停', canvas.width / 2, canvas.height / 2);
+        ctx.fillText('已暂停', CANVAS_SIZE / 2, CANVAS_SIZE / 2);
     } else {
         draw();
     }
