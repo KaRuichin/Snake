@@ -389,8 +389,15 @@ function handleKeyPress(e) {
         e.preventDefault();
     }
 
-    if ((key === 'Space') && !isGameOver && gameLoop) {
-        togglePause();
+    // 空格键：开始游戏 / 重新开始 / 暂停继续
+    if (key === 'Space') {
+        if (!gameLoop || isGameOver) {
+            // 游戏未开始或已结束，开始/重新开始游戏
+            startGame();
+        } else {
+            // 游戏进行中，切换暂停
+            togglePause();
+        }
         return;
     }
 
