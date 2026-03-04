@@ -31,8 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
     highScoreElement.textContent = highScore;
 
     // 绑定事件
-    startBtn.addEventListener('click', startGame);
-    pauseBtn.addEventListener('click', togglePause);
+    startBtn.addEventListener('click', () => {
+        startGame();
+        startBtn.blur(); // 移除焦点以便键盘控制
+    });
+    pauseBtn.addEventListener('click', () => {
+        togglePause();
+        pauseBtn.blur();
+    });
     document.addEventListener('keydown', handleKeyPress);
 
     // 绘制初始画面
@@ -323,18 +329,20 @@ function togglePause() {
 
 // 键盘控制
 function handleKeyPress(e) {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+    const key = e.code || e.key;
+
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(key)) {
         e.preventDefault();
     }
 
-    if (e.code === 'Space' && !isGameOver && gameLoop) {
+    if ((key === 'Space') && !isGameOver && gameLoop) {
         togglePause();
         return;
     }
 
-    if (isPaused || isGameOver) return;
+    if (isPaused || isGameOver || !gameLoop) return;
 
-    switch (e.code) {
+    switch (key) {
         case 'ArrowUp':
             if (direction !== 'down') nextDirection = 'up';
             break;
