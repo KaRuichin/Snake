@@ -100,7 +100,7 @@ button:disabled {
 }
 
 .instructions {
-    margin-top: 25px;
+    margin-top: 15px;
     opacity: 0.8;
 }
 
@@ -117,18 +117,104 @@ kbd {
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* 画中画模式下的样式 */
-.pip-mode {
-    background: #0f0f23;
-    padding: 10px;
+/* 设置区域 */
+.settings {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    flex-wrap: wrap;
 }
 
-.pip-mode .game-info {
-    font-size: 14px;
-    margin-bottom: 10px;
-    gap: 20px;
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
-.pip-mode .game-info span {
-    padding: 5px 15px;
+.toggle-switch input {
+    display: none;
+}
+
+.toggle-switch .slider {
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.toggle-switch .slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s ease;
+}
+
+.toggle-switch input:checked+.slider {
+    background: #4ecca3;
+}
+
+.toggle-switch input:checked+.slider::before {
+    transform: translateX(20px);
+}
+
+.toggle-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* 倒计时秒数设置 */
+.countdown-setting {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.countdown-setting input {
+    width: 50px;
+    padding: 5px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.countdown-setting input:focus {
+    outline: none;
+    border-color: #4ecca3;
+    box-shadow: 0 0 8px rgba(78, 204, 163, 0.3);
+}
+
+.countdown-setting input::-webkit-inner-spin-button,
+.countdown-setting input::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
+/* 倒计时提示 */
+.countdown-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    font-weight: bold;
+    color: #4ecca3;
+    text-shadow: 0 0 20px rgba(78, 204, 163, 0.5);
+    z-index: 10;
+    pointer-events: none;
 }

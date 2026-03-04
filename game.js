@@ -16,10 +16,15 @@ let isPaused = false;
 let isGameOver = false;
 let dpr = 1;
 
+// 焦点相关
+let pausedByBlur = false;
+let resumeCountdown = null;
+let countdownValue = 0;
+
 // DOM 元素
 let canvas, ctx;
 let scoreElement, highScoreElement;
-let startBtn, pauseBtn;
+let startBtn, pauseBtn, autoResumeToggle, countdownSecondsInput;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     highScoreElement = document.getElementById('highScore');
     startBtn = document.getElementById('startBtn');
     pauseBtn = document.getElementById('pauseBtn');
+    autoResumeToggle = document.getElementById('autoResumeToggle');
+    countdownSecondsInput = document.getElementById('countdownSeconds');
 
     // 设置高清 Canvas
     setupHiDPICanvas();
@@ -38,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 绑定事件
     startBtn.addEventListener('click', () => {
         startGame();
-        startBtn.blur(); // 移除焦点以便键盘控制
+        startBtn.blur();
     });
     pauseBtn.addEventListener('click', () => {
         togglePause();
@@ -48,6 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 监听缩放变化
     window.addEventListener('resize', handleResize);
+
+    // 监听窗口焦点变化
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // 绘制初始画面
     drawInitialScreen();
@@ -130,6 +142,10 @@ function drawInitialScreen() {
 
 // 开始游戏
 function startGame() {
+    // 取消自动恢复倒计时（如果有）
+    cancelAutoResume();
+    pausedByBlur = false;
+
     // 重置游戏状态
     snake = [
         { x: 5, y: 10 },
@@ -365,6 +381,25 @@ function gameOver() {
 function togglePause() {
     if (isGameOver) return;
 
+    // 如果正在倒计时，取消并立即恢复
+    if (resumeCountdown) {
+        cancelAutoResume();
+        pausedByBlur = false;
+        isPaused = false;
+        pauseBtn.textContent = '暂停';
+        draw();
+        return;
+    }
+
+    // 如果是因失焦暂停的，手动恢复
+    if (pausedByBlur) {
+        pausedByBlur = false;
+        isPaused = false;
+        pauseBtn.textContent = '暂停';
+        draw();
+        return;
+    }
+
     isPaused = !isPaused;
     pauseBtn.textContent = isPaused ? '继续' : '暂停';
 
@@ -417,4 +452,118 @@ function handleKeyPress(e) {
             if (direction !== 'left') nextDirection = 'right';
             break;
     }
+}
+
+// 窗口失去焦点
+function handleWindowBlur() {
+    if (gameLoop && !isPaused && !isGameOver) {
+        pausedByBlur = true;
+        isPaused = true;
+        pauseBtn.textContent = '继续';
+        cancelAutoResume();
+        drawPausedScreen('窗口失去焦点 - 已暂停');
+    }
+}
+
+// 窗口获得焦点
+function handleWindowFocus() {
+    if (pausedByBlur && isPaused && !isGameOver) {
+        if (autoResumeToggle && autoResumeToggle.checked) {
+            startAutoResume();
+        }
+    }
+}
+
+// 页面可见性变化
+function handleVisibilityChange() {
+    if (document.hidden) {
+        handleWindowBlur();
+    } else {
+        handleWindowFocus();
+    }
+}
+
+// 获取用户设置的倒计时秒数
+function getCountdownSeconds() {
+    if (countdownSecondsInput) {
+        const val = parseInt(countdownSecondsInput.value, 10);
+        if (val >= 1 && val <= 10) {
+            return val;
+        }
+    }
+    return 3; // 默认3秒
+}
+
+// 开始自动恢复倒计时
+function startAutoResume() {
+    cancelAutoResume();
+    countdownValue = getCountdownSeconds();
+    drawCountdown();
+
+    resumeCountdown = setInterval(() => {
+        countdownValue--;
+        if (countdownValue > 0) {
+            drawCountdown();
+        } else {
+            cancelAutoResume();
+            resumeFromBlur();
+        }
+    }, 1000);
+}
+
+// 取消自动恢复
+function cancelAutoResume() {
+    if (resumeCountdown) {
+        clearInterval(resumeCountdown);
+        resumeCountdown = null;
+    }
+    countdownValue = 0;
+}
+
+// 从失焦暂停中恢复
+function resumeFromBlur() {
+    if (pausedByBlur && isPaused) {
+        pausedByBlur = false;
+        isPaused = false;
+        pauseBtn.textContent = '暂停';
+        draw();
+    }
+}
+
+// 绘制暂停画面（带自定义消息）
+function drawPausedScreen(message) {
+    draw();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 24px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(message || '已暂停', CANVAS_SIZE / 2, CANVAS_SIZE / 2 - 20);
+
+    if (autoResumeToggle && autoResumeToggle.checked) {
+        ctx.font = '16px Segoe UI';
+        ctx.fillStyle = '#4ecca3';
+        ctx.fillText(`焦点恢复后 ${getCountdownSeconds()} 秒自动继续`, CANVAS_SIZE / 2, CANVAS_SIZE / 2 + 15);
+    } else {
+        ctx.font = '16px Segoe UI';
+        ctx.fillStyle = '#888';
+        ctx.fillText('按空格或点击继续按钮恢复', CANVAS_SIZE / 2, CANVAS_SIZE / 2 + 15);
+    }
+}
+
+// 绘制倒计时
+function drawCountdown() {
+    draw();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    ctx.fillStyle = '#4ecca3';
+    ctx.font = 'bold 72px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(countdownValue, CANVAS_SIZE / 2, CANVAS_SIZE / 2 + 20);
+
+    ctx.font = '18px Segoe UI';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('即将继续...', CANVAS_SIZE / 2, CANVAS_SIZE / 2 + 60);
 }
